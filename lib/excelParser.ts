@@ -2,7 +2,7 @@ import * as XLSX from 'xlsx';
 import type { TaromboRawRow, TaromboPerson, ValidationError } from '@/types/tarombo';
 
 // ============================================================
-// Excel Parser — reads the "Tarombo" sheet from an XLSX workbook
+// Parser Excel — membaca sheet "Tarombo" dari workbook XLSX
 // ============================================================
 
 const SHEET_NAME = 'Tarombo';
@@ -40,15 +40,14 @@ export interface ParseResult {
 
 export function parseExcelFile(file: ArrayBuffer): ParseResult {
   const workbook = XLSX.read(file, { type: 'array' });
-
   const errors: ValidationError[] = [];
 
-  // Check sheet existence
+  // Periksa keberadaan sheet
   if (!workbook.SheetNames.includes(SHEET_NAME)) {
     errors.push({
       type: 'INVALID_DATA_TYPE',
       severity: 'error',
-      message: `Sheet "${SHEET_NAME}" not found. Available sheets: ${workbook.SheetNames.join(', ')}`,
+      message: `Sheet "${SHEET_NAME}" tidak ditemukan. Sheet yang tersedia: ${workbook.SheetNames.join(', ')}`,
     });
     return { persons: [], errors };
   }
@@ -63,7 +62,7 @@ export function parseExcelFile(file: ArrayBuffer): ParseResult {
     errors.push({
       type: 'MISSING_ROOT',
       severity: 'error',
-      message: 'The Tarombo sheet is empty.',
+      message: 'Sheet Tarombo kosong. Tidak ada data yang ditemukan.',
     });
     return { persons: [], errors };
   }
@@ -71,9 +70,9 @@ export function parseExcelFile(file: ArrayBuffer): ParseResult {
   const persons: TaromboPerson[] = [];
 
   rawRows.forEach((row, index) => {
-    const rowNum = index + 2; // Excel row (1-indexed header + 1)
+    const rowNum = index + 2; // Baris Excel (header = baris 1)
 
-    // Validate ID
+    // Validasi ID
     const rawId = row['ID'];
     if (rawId === null || rawId === undefined || String(rawId).trim() === '') {
       errors.push({
@@ -81,9 +80,9 @@ export function parseExcelFile(file: ArrayBuffer): ParseResult {
         severity: 'error',
         row: rowNum,
         field: 'ID',
-        message: `Row ${rowNum}: ID is missing or empty.`,
+        message: `Baris ${rowNum}: ID tidak ada atau kosong.`,
       });
-      return; // skip this row
+      return;
     }
 
     if (isNaN(Number(rawId))) {
@@ -92,12 +91,12 @@ export function parseExcelFile(file: ArrayBuffer): ParseResult {
         severity: 'error',
         row: rowNum,
         field: 'ID',
-        message: `Row ${rowNum}: ID "${rawId}" is not a valid number.`,
+        message: `Baris ${rowNum}: ID "${rawId}" bukan angka yang valid.`,
       });
       return;
     }
 
-    // Validate Father ID (optional, but must be numeric if provided)
+    // Validasi Father ID (opsional, tapi harus angka jika diisi)
     const rawFatherId = row['Father ID'];
     if (
       rawFatherId !== null &&
@@ -110,11 +109,11 @@ export function parseExcelFile(file: ArrayBuffer): ParseResult {
         severity: 'error',
         row: rowNum,
         field: 'Father ID',
-        message: `Row ${rowNum}: Father ID "${rawFatherId}" is not a valid number.`,
+        message: `Baris ${rowNum}: ID Ayah "${rawFatherId}" bukan angka yang valid.`,
       });
     }
 
-    // Validate Name
+    // Validasi Nama
     const name = normalizeString(row['Nama']);
     if (!name) {
       errors.push({
@@ -122,23 +121,23 @@ export function parseExcelFile(file: ArrayBuffer): ParseResult {
         severity: 'error',
         row: rowNum,
         field: 'Nama',
-        message: `Row ${rowNum} (ID: ${rawId}): Name (Nama) is empty.`,
+        message: `Baris ${rowNum} (ID: ${rawId}): Kolom Nama kosong.`,
       });
     }
 
     const person: TaromboPerson = {
       id: String(rawId).trim(),
       fatherId: normalizeId(rawFatherId),
-      name: name ?? `(Unnamed #${rawId})`,
+      name: name ?? `(Tanpa Nama #${rawId})`,
       gender: normalizeGender(row['Gender']),
       spouse: normalizeString(row['Pasangan']),
       generation: normalizeNumber(row['Generasi']),
-      generationComputed: 0, // will be set during layout
+      generationComputed: 0,
       marga: normalizeString(row['Marga']),
       birthYear: normalizeString(row['Lahir']),
       deathYear: normalizeString(row['Wafat']),
       notes: normalizeString(row['Catatan']),
-      isRoot: false, // will be computed
+      isRoot: false,
     };
 
     persons.push(person);
@@ -151,7 +150,7 @@ export function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
-    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.onerror = () => reject(new Error('Gagal membaca file Excel.'));
     reader.readAsArrayBuffer(file);
   });
 }

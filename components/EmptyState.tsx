@@ -4,7 +4,7 @@ import React from 'react';
 import { Upload, FileSpreadsheet, GitBranch } from 'lucide-react';
 
 // ============================================================
-// EmptyState — shown when no file is loaded
+// EmptyState — Ditampilkan saat belum ada file yang diunggah
 // ============================================================
 
 interface EmptyStateProps {
@@ -25,7 +25,7 @@ export default function EmptyState({ onUploadClick }: EmptyStateProps) {
         userSelect: 'none',
       }}
     >
-      {/* Decorative tree icon */}
+      {/* Ikon dekoratif */}
       <div
         style={{
           position: 'relative',
@@ -62,8 +62,8 @@ export default function EmptyState({ onUploadClick }: EmptyStateProps) {
         </div>
       </div>
 
-      {/* Text */}
-      <div style={{ textAlign: 'center', maxWidth: 420 }}>
+      {/* Teks utama */}
+      <div style={{ textAlign: 'center', maxWidth: 440 }}>
         <h2
           style={{
             fontSize: 22,
@@ -73,21 +73,16 @@ export default function EmptyState({ onUploadClick }: EmptyStateProps) {
             letterSpacing: '-0.03em',
           }}
         >
-          Upload your Tarombo Excel file
+          Unggah File Excel Tarombo Anda
         </h2>
-        <p
-          style={{
-            fontSize: 14,
-            color: '#64748b',
-            lineHeight: 1.7,
-          }}
-        >
-          Upload an Excel file using the Tarombo template to generate an interactive,
-          visual family tree. Supports 1000+ members across 30+ generations.
+        <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7 }}>
+          Unggah file Excel menggunakan template Tarombo untuk menghasilkan pohon
+          silsilah keluarga yang interaktif dan visual. Mendukung lebih dari 1.000
+          anggota keluarga di lebih dari 30 generasi.
         </p>
       </div>
 
-      {/* Action buttons */}
+      {/* Tombol aksi */}
       <div style={{ display: 'flex', gap: 12 }}>
         <button
           id="empty-state-upload"
@@ -119,7 +114,7 @@ export default function EmptyState({ onUploadClick }: EmptyStateProps) {
           }}
         >
           <Upload size={16} />
-          Upload Excel
+          Unggah Excel
         </button>
 
         <a
@@ -150,11 +145,11 @@ export default function EmptyState({ onUploadClick }: EmptyStateProps) {
           }}
         >
           <FileSpreadsheet size={16} />
-          Download Template
+          Unduh Template
         </a>
       </div>
 
-      {/* Format hint */}
+      {/* Panduan kolom Excel */}
       <div
         style={{
           display: 'flex',
@@ -166,20 +161,28 @@ export default function EmptyState({ onUploadClick }: EmptyStateProps) {
           borderRadius: 10,
           fontSize: 12,
           color: '#64748b',
-          maxWidth: 360,
+          maxWidth: 380,
           width: '100%',
         }}
       >
-        <div style={{ fontWeight: 700, color: '#94a3b8', marginBottom: 4, fontSize: 11, letterSpacing: '0.05em' }}>
-          REQUIRED COLUMNS IN YOUR EXCEL
+        <div
+          style={{
+            fontWeight: 700,
+            color: '#94a3b8',
+            marginBottom: 4,
+            fontSize: 11,
+            letterSpacing: '0.05em',
+          }}
+        >
+          KOLOM WAJIB DI FILE EXCEL ANDA
         </div>
         {[
-          ['ID', 'Unique numeric identifier'],
-          ['Father ID', 'Parent ID (empty for root)'],
-          ['Nama', 'Full name (required)'],
-          ['Gender', 'L = Male, P = Female'],
-          ['Pasangan', 'Spouse name (optional)'],
-          ['Marga', 'Clan/surname (optional)'],
+          ['ID', 'ID numerik unik untuk setiap orang'],
+          ['Father ID', 'ID ayah (kosongkan untuk akar silsilah)'],
+          ['Nama', 'Nama lengkap (wajib diisi)'],
+          ['Gender', 'L = Laki-laki, P = Perempuan'],
+          ['Pasangan', 'Nama pasangan (opsional)'],
+          ['Marga', 'Marga / nama keluarga (opsional)'],
         ].map(([col, desc]) => (
           <div key={col} style={{ display: 'flex', gap: 8 }}>
             <span

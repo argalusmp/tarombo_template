@@ -1,6 +1,12 @@
 'use client';
 
-import React, { useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -9,6 +15,8 @@ import {
   MiniMap,
   BackgroundVariant,
   useReactFlow,
+  useNodesState,
+  useEdgesState,
   type Node,
   type Edge,
   type FitViewOptions,
@@ -27,12 +35,14 @@ const nodeTypes: NodeTypes = { personNode: PersonNode };
 
 const fitViewOptions: FitViewOptions = {
   padding: 0.15,
-  maxZoom: 1.5,
+  maxZoom: 1.2,
 };
 
 export interface TreeCanvasHandle {
   fitView: () => void;
   getViewportElement: () => HTMLElement | null;
+  /** Mengembalikan semua node dengan posisi & dimensi yang sudah di-measure oleh React Flow */
+  getNodes: () => Node<PersonNodeData>[];
 }
 
 interface TreeCanvasProps {
@@ -40,21 +50,33 @@ interface TreeCanvasProps {
   edges: Edge[];
 }
 
-// ─── Inner component (needs ReactFlow context) ──────────────
+// ─── Inner component (membutuhkan ReactFlow context) ────────
 
 const TreeCanvasInner = forwardRef<TreeCanvasHandle, TreeCanvasProps>(
-  function TreeCanvasInner({ nodes, edges }, ref) {
-    const { fitView } = useReactFlow();
+  function TreeCanvasInner({ nodes: propNodes, edges: propEdges }, ref) {
+    const { fitView, getNodes } = useReactFlow();
     const containerRef = useRef<HTMLDivElement>(null);
+
+    // useNodesState / useEdgesState → MiniMap & drag bekerja dengan benar
+    const [nodes, setNodes, onNodesChange] = useNodesState<Node<PersonNodeData>>(propNodes);
+    const [edges, setEdges, onEdgesChange] = useEdgesState(propEdges);
+
+    // Sinkronkan ketika prop berubah (file baru diupload)
+    useEffect(() => {
+      setNodes(propNodes);
+    }, [propNodes, setNodes]);
+
+    useEffect(() => {
+      setEdges(propEdges);
+    }, [propEdges, setEdges]);
 
     useImperativeHandle(ref, () => ({
       fitView: () => fitView(fitViewOptions),
       getViewportElement: () =>
         containerRef.current?.querySelector('.react-flow__viewport') as HTMLElement | null,
+      // getNodes() dari instance React Flow memiliki properti `measured` (dimensi aktual)
+      getNodes: () => getNodes() as Node<PersonNodeData>[],
     }));
-
-    const onNodesChange = useCallback(() => {}, []);
-    const onEdgesChange = useCallback(() => {}, []);
 
     const miniMapNodeColor = useCallback((node: Node) => {
       const data = node.data as PersonNodeData | undefined;
@@ -70,13 +92,13 @@ const TreeCanvasInner = forwardRef<TreeCanvasHandle, TreeCanvasProps>(
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
           fitView
           fitViewOptions={fitViewOptions}
           minZoom={0.02}
           maxZoom={3}
           proOptions={{ hideAttribution: true }}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
           nodesDraggable={true}
           nodesConnectable={false}
           elementsSelectable={true}
@@ -89,6 +111,7 @@ const TreeCanvasInner = forwardRef<TreeCanvasHandle, TreeCanvasProps>(
           />
 
           <Controls
+            showInteractive={false}
             style={{
               background: '#1e293b',
               border: '1px solid #334155',
@@ -116,7 +139,7 @@ const TreeCanvasInner = forwardRef<TreeCanvasHandle, TreeCanvasProps>(
 
 TreeCanvasInner.displayName = 'TreeCanvasInner';
 
-// ─── Outer component wraps with ReactFlowProvider ───────────
+// ─── Outer component membungkus dengan ReactFlowProvider ────
 
 const TreeCanvas = forwardRef<TreeCanvasHandle, TreeCanvasProps>(
   function TreeCanvas(props, ref) {

@@ -5,7 +5,7 @@ import { Users, GitBranch, TrendingUp } from 'lucide-react';
 import type { FamilyTreeData } from '@/types/tarombo';
 
 // ============================================================
-// StatsBar — shows tree statistics in a compact strip
+// StatsBar — menampilkan statistik pohon di bilah yang ringkas
 // ============================================================
 
 interface StatsBarProps {
@@ -19,31 +19,35 @@ export default function StatsBar({ treeData }: StatsBarProps) {
     {
       icon: <Users size={13} color="#818cf8" />,
       value: stats.total,
-      label: 'Members',
+      label: 'Anggota',
       color: '#818cf8',
     },
     {
       icon: <TrendingUp size={13} color="#22d3ee" />,
       value: stats.generations,
-      label: 'Generations',
+      label: 'Generasi',
       color: '#22d3ee',
     },
     {
-      icon: <span style={{ fontSize: 11, fontWeight: 700, color: '#60a5fa' }}>L</span>,
+      icon: (
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#60a5fa' }}>L</span>
+      ),
       value: stats.males,
-      label: 'Male',
+      label: 'Laki-laki',
       color: '#60a5fa',
     },
     {
-      icon: <span style={{ fontSize: 11, fontWeight: 700, color: '#f472b6' }}>P</span>,
+      icon: (
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#f472b6' }}>P</span>
+      ),
       value: stats.females,
-      label: 'Female',
+      label: 'Perempuan',
       color: '#f472b6',
     },
     {
       icon: <GitBranch size={13} color="#34d399" />,
       value: stats.roots,
-      label: stats.roots === 1 ? 'Root' : 'Roots',
+      label: stats.roots === 1 ? 'Akar' : 'Akar',
       color: '#34d399',
     },
   ];
@@ -85,15 +89,9 @@ export default function StatsBar({ treeData }: StatsBarProps) {
                 fontVariantNumeric: 'tabular-nums',
               }}
             >
-              {item.value.toLocaleString()}
+              {item.value.toLocaleString('id-ID')}
             </span>
-            <span
-              style={{
-                fontSize: 11,
-                color: '#475569',
-                fontWeight: 500,
-              }}
-            >
+            <span style={{ fontSize: 11, color: '#475569', fontWeight: 500 }}>
               {item.label}
             </span>
           </div>

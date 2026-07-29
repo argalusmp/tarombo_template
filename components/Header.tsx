@@ -4,7 +4,7 @@ import React from 'react';
 import { GitBranch, Sparkles } from 'lucide-react';
 
 // ============================================================
-// Header — App branding bar
+// Header — Bilah branding aplikasi
 // ============================================================
 
 export default function Header() {
@@ -22,7 +22,7 @@ export default function Header() {
         zIndex: 10,
       }}
     >
-      {/* Gradient glow */}
+      {/* Glow gradient */}
       <div
         style={{
           position: 'absolute',
@@ -37,13 +37,7 @@ export default function Header() {
       />
 
       {/* Logo */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-        }}
-      >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div
           style={{
             width: 36,
@@ -83,12 +77,12 @@ export default function Header() {
               fontWeight: 500,
             }}
           >
-            Interactive Batak Family Tree Generator
+            Generator Pohon Keluarga Batak Interaktif
           </div>
         </div>
       </div>
 
-      {/* Right: badge */}
+      {/* Kanan: badge fase */}
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
         <div
           style={{
@@ -106,7 +100,7 @@ export default function Header() {
           }}
         >
           <Sparkles size={11} />
-          Phase 1 MVP
+          Fase 1 MVP
         </div>
       </div>
     </header>

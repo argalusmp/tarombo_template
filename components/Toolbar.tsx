@@ -20,6 +20,7 @@ import type { SearchResult } from '@/hooks/useSearch';
 
 interface ToolbarProps {
   isLoading: boolean;
+  isExporting: boolean;
   fileName: string | null;
   hasTree: boolean;
   persons: TaromboPerson[];
@@ -36,6 +37,7 @@ interface ToolbarProps {
 
 export default function Toolbar({
   isLoading,
+  isExporting,
   fileName,
   hasTree,
   persons,
@@ -57,7 +59,6 @@ export default function Toolbar({
       const file = e.target.files?.[0];
       if (file) {
         onUpload(file);
-        // Reset input so same file can be re-uploaded
         e.target.value = '';
       }
     },
@@ -65,9 +66,10 @@ export default function Toolbar({
   );
 
   useEffect(() => {
-    if (searchQuery.length > 0) setIsSearchOpen(true);
-    else setIsSearchOpen(false);
-  }, [searchQuery]);
+    setIsSearchOpen(searchQuery.length > 0 && searchResults.length > 0);
+  }, [searchQuery, searchResults]);
+
+  const isDisabled = isLoading || isExporting;
 
   const btnBase: React.CSSProperties = {
     display: 'flex',
@@ -98,7 +100,7 @@ export default function Toolbar({
         zIndex: 9,
       }}
     >
-      {/* Hidden file input */}
+      {/* Input file tersembunyi */}
       <input
         ref={fileInputRef}
         type="file"
@@ -108,28 +110,28 @@ export default function Toolbar({
         id="excel-file-input"
       />
 
-      {/* Upload Button */}
+      {/* Tombol Unggah */}
       <button
         id="btn-upload"
         onClick={() => fileInputRef.current?.click()}
-        disabled={isLoading}
+        disabled={isDisabled}
         style={{
           ...btnBase,
           background: 'linear-gradient(135deg, #818cf8, #6366f1)',
           color: '#fff',
           boxShadow: '0 0 20px rgba(99, 102, 241, 0.3)',
-          opacity: isLoading ? 0.7 : 1,
+          opacity: isDisabled ? 0.7 : 1,
         }}
       >
-        {isLoading ? (
+        {isLoading && !isExporting ? (
           <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
         ) : (
           <Upload size={15} />
         )}
-        {isLoading ? 'Reading...' : 'Upload Excel'}
+        {isLoading && !isExporting ? 'Membaca...' : 'Unggah Excel'}
       </button>
 
-      {/* Download Template */}
+      {/* Unduh Template */}
       <a
         href="/Tarombo_Template.xlsx"
         download="Tarombo_Template.xlsx"
@@ -140,16 +142,18 @@ export default function Toolbar({
           color: '#94a3b8',
           border: '1px solid #334155',
           textDecoration: 'none',
+          pointerEvents: isDisabled ? 'none' : 'auto',
+          opacity: isDisabled ? 0.7 : 1,
         }}
       >
         <Download size={15} />
-        Template
+        Unduh Template
       </a>
 
-      {/* Separator */}
+      {/* Pemisah */}
       <div style={{ width: 1, height: 28, background: '#1e293b', margin: '0 4px' }} />
 
-      {/* Search */}
+      {/* Kotak Pencarian */}
       <div style={{ position: 'relative', flex: 1, maxWidth: 320 }}>
         <div
           style={{
@@ -168,10 +172,10 @@ export default function Toolbar({
             ref={searchInputRef}
             id="search-input"
             type="text"
-            placeholder={hasTree ? `Search ${persons.length} members...` : 'Upload a file first'}
+            placeholder={hasTree ? `Cari dari ${persons.length} anggota...` : 'Unggah file terlebih dahulu'}
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            disabled={!hasTree}
+            disabled={!hasTree || isDisabled}
             style={{
               flex: 1,
               background: 'transparent',
@@ -180,7 +184,7 @@ export default function Toolbar({
               color: '#f1f5f9',
               fontSize: 13,
               fontFamily: 'inherit',
-              cursor: hasTree ? 'text' : 'not-allowed',
+              cursor: !hasTree || isDisabled ? 'not-allowed' : 'text',
             }}
           />
           {searchQuery && (
@@ -204,8 +208,8 @@ export default function Toolbar({
           )}
         </div>
 
-        {/* Search dropdown */}
-        {isSearchOpen && searchResults.length > 0 && (
+        {/* Dropdown hasil pencarian */}
+        {isSearchOpen && (
           <div
             style={{
               position: 'absolute',
@@ -273,7 +277,7 @@ export default function Toolbar({
                   <div style={{ fontSize: 11, color: '#64748b' }}>
                     ID: {result.person.id}
                     {result.person.marga ? ` · ${result.person.marga}` : ''}
-                    {` · Gen ${result.person.generationComputed}`}
+                    {` · Generasi ${result.person.generationComputed}`}
                   </div>
                 </div>
               </button>
@@ -282,7 +286,7 @@ export default function Toolbar({
         )}
       </div>
 
-      {/* File name indicator */}
+      {/* Nama file aktif */}
       {fileName && (
         <div
           style={{
@@ -303,43 +307,51 @@ export default function Toolbar({
         </div>
       )}
 
-      {/* Spacer */}
+      {/* Spasi */}
       <div style={{ flex: 1 }} />
 
-      {/* Export PNG */}
+      {/* Ekspor PNG */}
       <button
         id="btn-export-png"
         onClick={onExportPng}
-        disabled={!hasTree || isLoading}
-        title="Export as PNG"
+        disabled={!hasTree || isDisabled}
+        title="Ekspor sebagai PNG (resolusi tinggi, seluruh pohon)"
         style={{
           ...btnBase,
-          background: hasTree ? '#1e293b' : '#0f172a',
-          color: hasTree ? '#94a3b8' : '#334155',
-          border: `1px solid ${hasTree ? '#334155' : '#1e293b'}`,
-          cursor: hasTree ? 'pointer' : 'not-allowed',
+          background: hasTree && !isDisabled ? '#1e293b' : '#0f172a',
+          color: hasTree && !isDisabled ? '#94a3b8' : '#334155',
+          border: `1px solid ${hasTree && !isDisabled ? '#334155' : '#1e293b'}`,
+          cursor: hasTree && !isDisabled ? 'pointer' : 'not-allowed',
         }}
       >
-        <ImageIcon size={15} />
-        PNG
+        {isExporting ? (
+          <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
+        ) : (
+          <ImageIcon size={15} />
+        )}
+        Ekspor PNG
       </button>
 
-      {/* Export PDF */}
+      {/* Ekspor PDF */}
       <button
         id="btn-export-pdf"
         onClick={onExportPdf}
-        disabled={!hasTree || isLoading}
-        title="Export as PDF"
+        disabled={!hasTree || isDisabled}
+        title="Ekspor sebagai PDF (ukuran menyesuaikan pohon)"
         style={{
           ...btnBase,
-          background: hasTree ? '#1e293b' : '#0f172a',
-          color: hasTree ? '#94a3b8' : '#334155',
-          border: `1px solid ${hasTree ? '#334155' : '#1e293b'}`,
-          cursor: hasTree ? 'pointer' : 'not-allowed',
+          background: hasTree && !isDisabled ? '#1e293b' : '#0f172a',
+          color: hasTree && !isDisabled ? '#94a3b8' : '#334155',
+          border: `1px solid ${hasTree && !isDisabled ? '#334155' : '#1e293b'}`,
+          cursor: hasTree && !isDisabled ? 'pointer' : 'not-allowed',
         }}
       >
-        <FileText size={15} />
-        PDF
+        {isExporting ? (
+          <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
+        ) : (
+          <FileText size={15} />
+        )}
+        Ekspor PDF
       </button>
     </div>
   );

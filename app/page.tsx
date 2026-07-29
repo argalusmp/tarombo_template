@@ -12,17 +12,17 @@ import StatsBar from '@/components/StatsBar';
 import { useFamilyTree } from '@/hooks/useFamilyTree';
 import { useSearch } from '@/hooks/useSearch';
 import { exportPng, exportPdf } from '@/utils/exportUtils';
-import type { TaromboPerson, PersonNodeData } from '@/types/tarombo';
+import type { TaromboPerson } from '@/types/tarombo';
 
 // ============================================================
-// Home Page
+// Halaman Utama
 // ============================================================
 
 export default function HomePage() {
   const treeCanvasRef = useRef<TreeCanvasHandle>(null);
-  const fileInputTriggerRef = useRef<HTMLButtonElement>(null);
   const [showValidation, setShowValidation] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const {
     isLoading,
@@ -42,10 +42,11 @@ export default function HomePage() {
 
   const hasTree = nodes.length > 0;
 
-  // ── Upload ─────────────────────────────────────────────────
+  // ── Upload ──────────────────────────────────────────────────
   const handleUpload = useCallback(
     (file: File) => {
       setShowValidation(true);
+      setExportError(null);
       loadFile(file);
     },
     [loadFile]
@@ -55,7 +56,7 @@ export default function HomePage() {
     document.getElementById('excel-file-input')?.click();
   }, []);
 
-  // ── Search select → pan to node ───────────────────────────
+  // ── Cari & sorot node ───────────────────────────────────────
   const handleSearchSelect = useCallback(
     (person: TaromboPerson) => {
       const ids = new Set([person.id]);
@@ -70,24 +71,36 @@ export default function HomePage() {
     clearSearch();
   }, [clearHighlight, clearSearch]);
 
-  // ── Export ─────────────────────────────────────────────────
+  // ── Ekspor ──────────────────────────────────────────────────
   const handleExportPng = useCallback(async () => {
-    const el = treeCanvasRef.current?.getViewportElement();
-    if (!el) return;
+    const viewportEl = treeCanvasRef.current?.getViewportElement();
+    const allNodes = treeCanvasRef.current?.getNodes() ?? [];
+
+    if (!viewportEl || allNodes.length === 0) return;
+
     setIsExporting(true);
+    setExportError(null);
     try {
-      await exportPng(el);
+      await exportPng(viewportEl, allNodes);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Gagal mengekspor PNG');
     } finally {
       setIsExporting(false);
     }
   }, []);
 
   const handleExportPdf = useCallback(async () => {
-    const el = treeCanvasRef.current?.getViewportElement();
-    if (!el) return;
+    const viewportEl = treeCanvasRef.current?.getViewportElement();
+    const allNodes = treeCanvasRef.current?.getNodes() ?? [];
+
+    if (!viewportEl || allNodes.length === 0) return;
+
     setIsExporting(true);
+    setExportError(null);
     try {
-      await exportPdf(el);
+      await exportPdf(viewportEl, allNodes);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Gagal mengekspor PDF');
     } finally {
       setIsExporting(false);
     }
@@ -107,6 +120,7 @@ export default function HomePage() {
       <Header />
       <Toolbar
         isLoading={isLoading || isExporting}
+        isExporting={isExporting}
         fileName={fileName}
         hasTree={hasTree}
         persons={treeData?.persons ?? []}
@@ -121,7 +135,7 @@ export default function HomePage() {
         searchInputRef={searchInputRef}
       />
 
-      {/* Main canvas area */}
+      {/* Area kanvas utama */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         {!hasTree && !isLoading ? (
           <EmptyState onUploadClick={triggerFileInput} />
@@ -140,13 +154,13 @@ export default function HomePage() {
           </>
         )}
 
-        {/* Loading overlay */}
-        {isLoading && (
+        {/* Overlay loading */}
+        {(isLoading || isExporting) && (
           <div
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'rgba(10, 15, 30, 0.8)',
+              background: 'rgba(10, 15, 30, 0.85)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -167,13 +181,18 @@ export default function HomePage() {
               }}
             />
             <div style={{ color: '#94a3b8', fontSize: 14, fontWeight: 600 }}>
-              Building family tree...
+              {isExporting ? 'Menyiapkan ekspor, harap tunggu...' : 'Membangun pohon keluarga...'}
             </div>
+            {isExporting && (
+              <div style={{ color: '#64748b', fontSize: 12, maxWidth: 300, textAlign: 'center' }}>
+                Proses ini mungkin membutuhkan beberapa detik untuk pohon yang besar
+              </div>
+            )}
           </div>
         )}
 
-        {/* Error toast */}
-        {error && (
+        {/* Toast error */}
+        {(error || exportError) && (
           <div
             style={{
               position: 'absolute',
@@ -188,9 +207,11 @@ export default function HomePage() {
               color: '#ef4444',
               zIndex: 50,
               boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+              maxWidth: 500,
+              textAlign: 'center',
             }}
           >
-            ⚠️ {error}
+            ⚠️ {error ?? exportError}
           </div>
         )}
       </div>

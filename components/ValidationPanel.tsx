@@ -5,7 +5,7 @@ import { AlertTriangle, AlertCircle, X, ChevronDown, ChevronUp } from 'lucide-re
 import type { ValidationError } from '@/types/tarombo';
 
 // ============================================================
-// ValidationPanel — displays validation errors/warnings
+// ValidationPanel — menampilkan kesalahan & peringatan validasi
 // ============================================================
 
 interface ValidationPanelProps {
@@ -24,13 +24,13 @@ const ERROR_ICONS: Record<ValidationError['type'], React.ReactNode> = {
 };
 
 const ERROR_LABELS: Record<ValidationError['type'], string> = {
-  DUPLICATE_ID: 'Duplicate ID',
-  EMPTY_NAME: 'Empty Name',
-  INVALID_FATHER_ID: 'Invalid Father ID',
-  CIRCULAR_RELATIONSHIP: 'Circular Relationship',
-  MISSING_ROOT: 'Missing Root',
-  INVALID_DATA_TYPE: 'Invalid Data Type',
-  MULTIPLE_ROOTS: 'Multiple Roots',
+  DUPLICATE_ID: 'ID Duplikat',
+  EMPTY_NAME: 'Nama Kosong',
+  INVALID_FATHER_ID: 'ID Ayah Tidak Valid',
+  CIRCULAR_RELATIONSHIP: 'Hubungan Melingkar',
+  MISSING_ROOT: 'Tidak Ada Akar',
+  INVALID_DATA_TYPE: 'Tipe Data Tidak Valid',
+  MULTIPLE_ROOTS: 'Beberapa Akar Ditemukan',
 };
 
 export default function ValidationPanel({ errors, onDismiss }: ValidationPanelProps) {
@@ -48,7 +48,7 @@ export default function ValidationPanel({ errors, onDismiss }: ValidationPanelPr
         bottom: 24,
         left: '50%',
         transform: 'translateX(-50%)',
-        width: 'min(600px, 90vw)',
+        width: 'min(620px, 90vw)',
         background: '#0f172a',
         border: '1px solid #ef444444',
         borderRadius: 12,
@@ -57,7 +57,7 @@ export default function ValidationPanel({ errors, onDismiss }: ValidationPanelPr
         zIndex: 50,
       }}
     >
-      {/* Header */}
+      {/* Header panel */}
       <div
         style={{
           display: 'flex',
@@ -87,15 +87,19 @@ export default function ValidationPanel({ errors, onDismiss }: ValidationPanelPr
 
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>
-            Validation Issues
+            Masalah Validasi
           </div>
           <div style={{ fontSize: 11, color: '#64748b' }}>
             {errorCount > 0 && (
-              <span style={{ color: '#ef4444' }}>{errorCount} error{errorCount > 1 ? 's' : ''}</span>
+              <span style={{ color: '#ef4444' }}>
+                {errorCount} kesalahan{errorCount > 1 ? '' : ''}
+              </span>
             )}
             {errorCount > 0 && warnCount > 0 && ' · '}
             {warnCount > 0 && (
-              <span style={{ color: '#f59e0b' }}>{warnCount} warning{warnCount > 1 ? 's' : ''}</span>
+              <span style={{ color: '#f59e0b' }}>
+                {warnCount} peringatan
+              </span>
             )}
           </div>
         </div>
@@ -137,9 +141,9 @@ export default function ValidationPanel({ errors, onDismiss }: ValidationPanelPr
         </div>
       </div>
 
-      {/* Error list */}
+      {/* Daftar kesalahan */}
       {isExpanded && (
-        <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+        <div style={{ maxHeight: 240, overflowY: 'auto' }}>
           {errors.map((error, index) => (
             <div
               key={index}
@@ -172,7 +176,9 @@ export default function ValidationPanel({ errors, onDismiss }: ValidationPanelPr
                 >
                   {ERROR_LABELS[error.type]}
                   {error.row && (
-                    <span style={{ color: '#475569', marginLeft: 6 }}>Row {error.row}</span>
+                    <span style={{ color: '#475569', marginLeft: 6 }}>
+                      Baris {error.row}
+                    </span>
                   )}
                 </div>
                 <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>

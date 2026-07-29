@@ -56,7 +56,7 @@ export function useFamilyTree() {
       setState((prev) => ({
         ...prev,
         isLoading: false,
-        error: err instanceof Error ? err.message : 'An unexpected error occurred.',
+        error: err instanceof Error ? err.message : 'Terjadi kesalahan yang tidak terduga.',
       }));
     }
   }, []);
