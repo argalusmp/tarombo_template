@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Tarombo Digital — Global Styles
+   ============================================================ */
+
+:root {
+  --color-bg: #0a0f1e;
+  --color-surface: #0f172a;
+  --color-surface-2: #1e293b;
+  --color-border: #1e293b;
+  --color-border-2: #334155;
+  --color-text: #f1f5f9;
+  --color-text-2: #94a3b8;
+  --color-text-3: #64748b;
+  --color-accent: #818cf8;
+  --color-accent-2: #6366f1;
+  --color-blue: #3b82f6;
+  --color-pink: #ec4899;
+  --font-sans: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Base reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar ─────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-2);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* ── Animations ────────────────────────────────────── */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── React Flow overrides ──────────────────────────── */
+.react-flow__renderer {
+  background: var(--color-bg) !important;
+}
+
+.react-flow__controls {
+  background: var(--color-surface-2) !important;
+  border: 1px solid var(--color-border-2) !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.react-flow__controls-button {
+  background: var(--color-surface-2) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  color: var(--color-text-2) !important;
+  fill: var(--color-text-2) !important;
+  transition: background 0.15s ease;
+}
+
+.react-flow__controls-button:hover {
+  background: var(--color-border-2) !important;
+  color: var(--color-text) !important;
+  fill: var(--color-text) !important;
+}
+
+.react-flow__minimap {
+  border-radius: 10px !important;
+  overflow: hidden;
+}
+
+.react-flow__edge-path {
+  transition: stroke 0.2s ease;
+}
+
+.react-flow__node {
+  transition: filter 0.2s ease;
+}
+
+.react-flow__node:hover {
+  filter: brightness(1.1);
+}
+
+.react-flow__node.selected > div {
+  outline: 2px solid #818cf8 !important;
+  outline-offset: 2px;
+}
