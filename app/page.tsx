@@ -9,13 +9,20 @@ import EmptyState from '@/components/EmptyState';
 import ValidationPanel from '@/components/ValidationPanel';
 import StatsBar from '@/components/StatsBar';
 
+// Phase 2 panels
+import PersonDetailPanel from '@/components/PersonDetailPanel';
+import FocusBreadcrumb from '@/components/FocusBreadcrumb';
+import StatisticsPanel from '@/components/StatisticsPanel';
+import FilterPanel from '@/components/FilterPanel';
+import LegendPanel from '@/components/LegendPanel';
+
 import { useFamilyTree } from '@/hooks/useFamilyTree';
 import { useSearch } from '@/hooks/useSearch';
 import { exportPng, exportPdf } from '@/utils/exportUtils';
 import type { TaromboPerson } from '@/types/tarombo';
 
 // ============================================================
-// Halaman Utama
+// Halaman Utama — Phase 2
 // ============================================================
 
 export default function HomePage() {
@@ -24,6 +31,12 @@ export default function HomePage() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
+  // ── UI panel toggles ─────────────────────────────────────
+  const [showStats, setShowStats] = useState(false);
+  const [showFilter, setShowFilter] = useState(false);
+  const [showLegend, setShowLegend] = useState(false);
+  const [showDetailPanel, setShowDetailPanel] = useState(false);
+
   const {
     isLoading,
     fileName,
@@ -31,9 +44,23 @@ export default function HomePage() {
     nodes,
     edges,
     error,
+    selectedPerson,
+    focusedLineage,
+    filters,
+    extendedStats,
+    personMap,
+    hasFocus,
     loadFile,
     highlightPersons,
     clearHighlight,
+    selectPerson,
+    focusLineage,
+    resetFocus,
+    exploreRelations,
+    toggleCollapse,
+    expandAll,
+    setFilters,
+    resetFilters,
   } = useFamilyTree();
 
   const { query, setQuery, results, clear: clearSearch, inputRef: searchInputRef } = useSearch(
@@ -42,7 +69,7 @@ export default function HomePage() {
 
   const hasTree = nodes.length > 0;
 
-  // ── Upload ──────────────────────────────────────────────────
+  // ── Upload ──────────────────────────────────────────────
   const handleUpload = useCallback(
     (file: File) => {
       setShowValidation(true);
@@ -56,14 +83,57 @@ export default function HomePage() {
     document.getElementById('excel-file-input')?.click();
   }, []);
 
-  // ── Cari & sorot node ───────────────────────────────────────
+  // ── Node click → open detail panel ──────────────────────
+  const handleNodeSelect = useCallback(
+    (person: TaromboPerson) => {
+      selectPerson(person);
+      setShowDetailPanel(true);
+    },
+    [selectPerson]
+  );
+
+  // ── Close detail panel ────────────────────────────────────
+  const handleCloseDetail = useCallback(() => {
+    setShowDetailPanel(false);
+  }, []);
+
+  // ── Fokus Tarombo ────────────────────────────────────────
+  const handleFocusLineage = useCallback(
+    (person: TaromboPerson) => {
+      focusLineage(person.id);
+    },
+    [focusLineage]
+  );
+
+  // ── Explore relations ────────────────────────────────────
+  const handleExploreRelations = useCallback(
+    (person: TaromboPerson) => {
+      exploreRelations(person.id);
+    },
+    [exploreRelations]
+  );
+
+  // ── Reset focus ──────────────────────────────────────────
+  const handleResetFocus = useCallback(() => {
+    resetFocus();
+    clearHighlight();
+  }, [resetFocus, clearHighlight]);
+
+  // ── Search select ────────────────────────────────────────
   const handleSearchSelect = useCallback(
     (person: TaromboPerson) => {
       const ids = new Set([person.id]);
       highlightPersons(ids);
       setQuery(person.name);
+      // Open detail panel
+      selectPerson(person);
+      setShowDetailPanel(true);
+      // Center on node
+      setTimeout(() => {
+        treeCanvasRef.current?.focusOnNode(person.id);
+      }, 100);
     },
-    [highlightPersons, setQuery]
+    [highlightPersons, setQuery, selectPerson]
   );
 
   const handleSearchClear = useCallback(() => {
@@ -71,13 +141,21 @@ export default function HomePage() {
     clearSearch();
   }, [clearHighlight, clearSearch]);
 
-  // ── Ekspor ──────────────────────────────────────────────────
+  // ── Breadcrumb click ─────────────────────────────────────
+  const handleBreadcrumbSelect = useCallback(
+    (person: TaromboPerson) => {
+      selectPerson(person);
+      setShowDetailPanel(true);
+      treeCanvasRef.current?.focusOnNode(person.id);
+    },
+    [selectPerson]
+  );
+
+  // ── Export ───────────────────────────────────────────────
   const handleExportPng = useCallback(async () => {
     const viewportEl = treeCanvasRef.current?.getViewportElement();
     const allNodes = treeCanvasRef.current?.getNodes() ?? [];
-
     if (!viewportEl || allNodes.length === 0) return;
-
     setIsExporting(true);
     setExportError(null);
     try {
@@ -92,9 +170,7 @@ export default function HomePage() {
   const handleExportPdf = useCallback(async () => {
     const viewportEl = treeCanvasRef.current?.getViewportElement();
     const allNodes = treeCanvasRef.current?.getNodes() ?? [];
-
     if (!viewportEl || allNodes.length === 0) return;
-
     setIsExporting(true);
     setExportError(null);
     try {
@@ -105,6 +181,11 @@ export default function HomePage() {
       setIsExporting(false);
     }
   }, []);
+
+  // ── Father name lookup ───────────────────────────────────
+  const fatherName = selectedPerson?.fatherId
+    ? personMap.get(selectedPerson.fatherId)?.name ?? null
+    : null;
 
   return (
     <div
@@ -118,11 +199,13 @@ export default function HomePage() {
       }}
     >
       <Header />
+
       <Toolbar
         isLoading={isLoading || isExporting}
         isExporting={isExporting}
         fileName={fileName}
         hasTree={hasTree}
+        hasFocus={hasFocus}
         persons={treeData?.persons ?? []}
         searchQuery={query}
         searchResults={results}
@@ -132,19 +215,69 @@ export default function HomePage() {
         onUpload={handleUpload}
         onExportPng={handleExportPng}
         onExportPdf={handleExportPdf}
+        onToggleStats={() => setShowStats((v) => !v)}
+        onToggleFilter={() => setShowFilter((v) => !v)}
+        onToggleLegend={() => setShowLegend((v) => !v)}
+        onResetFocus={handleResetFocus}
+        onExpandAll={expandAll}
+        showStats={showStats}
+        showFilter={showFilter}
+        showLegend={showLegend}
         searchInputRef={searchInputRef}
       />
 
-      {/* Area kanvas utama */}
+      {/* Main canvas area */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         {!hasTree && !isLoading ? (
           <EmptyState onUploadClick={triggerFileInput} />
         ) : (
           <>
-            <TreeCanvas ref={treeCanvasRef} nodes={nodes} edges={edges} />
+            <TreeCanvas
+              ref={treeCanvasRef}
+              nodes={nodes}
+              edges={edges}
+              onNodeSelect={handleNodeSelect}
+            />
 
+            {/* ── Phase 2 panels ── */}
+
+            {/* Statistics panel */}
+            {extendedStats && showStats && (
+              <StatisticsPanel
+                stats={extendedStats}
+                onClose={() => setShowStats(false)}
+              />
+            )}
+
+            {/* Filter panel */}
+            {treeData && showFilter && (
+              <FilterPanel
+                filters={filters}
+                persons={treeData.persons}
+                hasLineage={focusedLineage.length > 0}
+                onFilterChange={setFilters}
+                onReset={resetFilters}
+                onClose={() => setShowFilter(false)}
+              />
+            )}
+
+            {/* Legend */}
+            {showLegend && <LegendPanel onClose={() => setShowLegend(false)} />}
+
+            {/* Breadcrumb */}
+            {focusedLineage.length > 0 && (
+              <FocusBreadcrumb
+                lineagePath={focusedLineage}
+                personMap={personMap}
+                onSelectPerson={handleBreadcrumbSelect}
+                onReset={handleResetFocus}
+              />
+            )}
+
+            {/* Stats bar (top center) */}
             {treeData && <StatsBar treeData={treeData} />}
 
+            {/* Validation panel */}
             {treeData && treeData.errors.length > 0 && showValidation && (
               <ValidationPanel
                 errors={treeData.errors}
@@ -154,7 +287,7 @@ export default function HomePage() {
           </>
         )}
 
-        {/* Overlay loading */}
+        {/* Loading overlay */}
         {(isLoading || isExporting) && (
           <div
             style={{
@@ -215,6 +348,16 @@ export default function HomePage() {
           </div>
         )}
       </div>
+
+      {/* Person Detail Panel (right sidebar — outside canvas so it overlaps correctly) */}
+      <PersonDetailPanel
+        person={selectedPerson}
+        fatherName={fatherName}
+        isOpen={showDetailPanel}
+        onClose={handleCloseDetail}
+        onFocusLineage={handleFocusLineage}
+        onExploreRelations={handleExploreRelations}
+      />
     </div>
   );
 }

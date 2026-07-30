@@ -1,38 +1,77 @@
 'use client';
 
-import React, { memo } from 'react';
+import React, { memo, useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 import type { PersonNodeData } from '@/types/tarombo';
 
 // ============================================================
-// PersonNode — Custom React Flow node for a family member
+// PersonNode — Custom React Flow node (Phase 2 enhanced)
 // ============================================================
 
 const PersonNode = memo(function PersonNode({ data }: NodeProps<Node<PersonNodeData>>) {
-  const { person, isHighlighted, isSearchResult } = data;
+  const {
+    person,
+    isHighlighted,
+    isSearchResult,
+    isFaded,
+    isSelected,
+    isAncestor,
+    isDescendant,
+    isFocused,
+    hasChildren,
+    isCollapsed,
+    onCollapse,
+    onNodeClick,
+  } = data;
 
   const isMale = person.gender === 'L';
   const isFemale = person.gender === 'P';
+  const isAlive = !person.deathYear;
 
-  const borderColor = isSearchResult
-    ? '#f59e0b'
+  // ── Priority-based visual state ─────────────────────────
+  const borderColor = isSelected
+    ? '#60a5fa'         // blue — selected
+    : isSearchResult
+    ? '#f59e0b'         // amber — search
+    : isFocused
+    ? '#a78bfa'         // violet — focused lineage
+    : isAncestor
+    ? '#f87171'         // red — ancestor
+    : isDescendant
+    ? '#4ade80'         // green — descendant
     : isHighlighted
-    ? '#818cf8'
+    ? '#818cf8'         // indigo — generic highlight
     : isMale
     ? '#3b82f6'
     : isFemale
     ? '#ec4899'
     : '#475569';
 
-  const bgGradient = isMale
+  const bgGradient = isSelected
+    ? 'linear-gradient(135deg, #1e3a5f 0%, #1e2a4a 100%)'
+    : isAncestor
+    ? 'linear-gradient(135deg, #3f1d1d 0%, #1e293b 100%)'
+    : isDescendant
+    ? 'linear-gradient(135deg, #1a3a2a 0%, #1e293b 100%)'
+    : isFocused
+    ? 'linear-gradient(135deg, #2d1b5e 0%, #1e293b 100%)'
+    : isMale
     ? 'linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%)'
     : isFemale
     ? 'linear-gradient(135deg, #4a1040 0%, #1e293b 100%)'
     : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)';
 
-  const glowColor = isSearchResult
+  const glowColor = isSelected
+    ? 'rgba(96, 165, 250, 0.5)'
+    : isSearchResult
     ? 'rgba(245, 158, 11, 0.4)'
+    : isFocused
+    ? 'rgba(167, 139, 250, 0.45)'
+    : isAncestor
+    ? 'rgba(248, 113, 113, 0.4)'
+    : isDescendant
+    ? 'rgba(74, 222, 128, 0.4)'
     : isHighlighted
     ? 'rgba(129, 140, 248, 0.4)'
     : isMale
@@ -41,8 +80,21 @@ const PersonNode = memo(function PersonNode({ data }: NodeProps<Node<PersonNodeD
     ? 'rgba(236, 72, 153, 0.15)'
     : 'rgba(71, 85, 105, 0.1)';
 
+  const handleCollapseClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onCollapse?.(person.id);
+    },
+    [onCollapse, person.id]
+  );
+
+  const handleNodeClick = useCallback(() => {
+    onNodeClick?.(person);
+  }, [onNodeClick, person]);
+
   return (
     <div
+      onClick={handleNodeClick}
       style={{
         width: 200,
         minHeight: 88,
@@ -51,12 +103,15 @@ const PersonNode = memo(function PersonNode({ data }: NodeProps<Node<PersonNodeD
         borderRadius: 12,
         padding: '10px 14px',
         boxShadow: `0 0 0 1px ${borderColor}22, 0 4px 24px ${glowColor}, 0 2px 8px rgba(0,0,0,0.4)`,
-        transition: 'all 0.2s ease',
+        transition: 'all 0.25s ease',
         position: 'relative',
         overflow: 'hidden',
+        opacity: isFaded ? 0.18 : 1,
+        cursor: 'pointer',
+        transform: isSelected ? 'scale(1.04)' : 'scale(1)',
       }}
     >
-      {/* Shimmer accent */}
+      {/* Top accent line */}
       <div
         style={{
           position: 'absolute',
@@ -68,6 +123,23 @@ const PersonNode = memo(function PersonNode({ data }: NodeProps<Node<PersonNodeD
           opacity: 0.8,
         }}
       />
+
+      {/* Alive / Deceased indicator */}
+      {!isAlive && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 6,
+            left: 6,
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: '#64748b',
+            boxShadow: '0 0 4px #64748b',
+          }}
+          title="Almarhum"
+        />
+      )}
 
       <Handle
         type="target"
@@ -81,7 +153,7 @@ const PersonNode = memo(function PersonNode({ data }: NodeProps<Node<PersonNodeD
         }}
       />
 
-      {/* Gender badge */}
+      {/* Name + Gender badge row */}
       <div
         style={{
           display: 'flex',
@@ -140,6 +212,21 @@ const PersonNode = memo(function PersonNode({ data }: NodeProps<Node<PersonNodeD
         </div>
       )}
 
+      {/* Birth/Death years row */}
+      {(person.birthYear || person.deathYear) && (
+        <div
+          style={{
+            fontSize: 10,
+            color: '#64748b',
+            marginTop: 2,
+          }}
+        >
+          {person.birthYear && `b. ${person.birthYear}`}
+          {person.birthYear && person.deathYear && ' — '}
+          {person.deathYear && `†${person.deathYear}`}
+        </div>
+      )}
+
       {/* Spouse */}
       {person.spouse && (
         <div
@@ -172,6 +259,38 @@ const PersonNode = memo(function PersonNode({ data }: NodeProps<Node<PersonNodeD
       >
         Gen {person.generationComputed}
       </div>
+
+      {/* Collapse / Expand button */}
+      {hasChildren && (
+        <button
+          onClick={handleCollapseClick}
+          title={isCollapsed ? 'Tampilkan anak' : 'Sembunyikan anak'}
+          style={{
+            position: 'absolute',
+            bottom: -12,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 20,
+            height: 20,
+            borderRadius: '50%',
+            background: isCollapsed ? '#6366f1' : '#334155',
+            border: `2px solid ${isCollapsed ? '#818cf8' : '#475569'}`,
+            color: '#fff',
+            fontSize: 11,
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10,
+            lineHeight: 1,
+            transition: 'all 0.2s ease',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+          }}
+        >
+          {isCollapsed ? '+' : '−'}
+        </button>
+      )}
 
       <Handle
         type="source"

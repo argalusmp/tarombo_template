@@ -280,6 +280,14 @@ export function buildTreeLayout(
         person,
         isHighlighted: highlightedIds?.has(person.id) ?? false,
         isSearchResult: highlightedIds?.has(person.id) ?? false,
+        // Phase 2 defaults — annotated dynamically by useFamilyTree
+        isFaded: false,
+        isSelected: false,
+        isAncestor: false,
+        isDescendant: false,
+        isFocused: false,
+        hasChildren: false,
+        isCollapsed: false,
       },
       draggable: true,
     };

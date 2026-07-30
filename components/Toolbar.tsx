@@ -10,12 +10,17 @@ import {
   X,
   Loader2,
   Users,
+  BarChart2,
+  Filter,
+  BookOpen,
+  RefreshCw,
+  TrendingUp,
 } from 'lucide-react';
 import type { TaromboPerson } from '@/types/tarombo';
 import type { SearchResult } from '@/hooks/useSearch';
 
 // ============================================================
-// Toolbar
+// Toolbar (Phase 2 enhanced)
 // ============================================================
 
 interface ToolbarProps {
@@ -23,6 +28,7 @@ interface ToolbarProps {
   isExporting: boolean;
   fileName: string | null;
   hasTree: boolean;
+  hasFocus: boolean;
   persons: TaromboPerson[];
   searchQuery: string;
   searchResults: SearchResult[];
@@ -32,6 +38,14 @@ interface ToolbarProps {
   onUpload: (file: File) => void;
   onExportPng: () => void;
   onExportPdf: () => void;
+  onToggleStats: () => void;
+  onToggleFilter: () => void;
+  onToggleLegend: () => void;
+  onResetFocus: () => void;
+  onExpandAll: () => void;
+  showStats: boolean;
+  showFilter: boolean;
+  showLegend: boolean;
   searchInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
@@ -40,6 +54,7 @@ export default function Toolbar({
   isExporting,
   fileName,
   hasTree,
+  hasFocus,
   persons,
   searchQuery,
   searchResults,
@@ -49,6 +64,14 @@ export default function Toolbar({
   onUpload,
   onExportPng,
   onExportPdf,
+  onToggleStats,
+  onToggleFilter,
+  onToggleLegend,
+  onResetFocus,
+  onExpandAll,
+  showStats,
+  showFilter,
+  showLegend,
   searchInputRef,
 }: ToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -74,33 +97,42 @@ export default function Toolbar({
   const btnBase: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
-    padding: '8px 14px',
+    gap: 6,
+    padding: '7px 12px',
     borderRadius: 8,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 600,
     cursor: 'pointer',
     border: 'none',
     transition: 'all 0.15s ease',
     whiteSpace: 'nowrap',
+    flexShrink: 0,
   };
+
+  const iconBtnStyle = (active?: boolean): React.CSSProperties => ({
+    ...btnBase,
+    padding: '7px 11px',
+    background: active ? 'rgba(99, 102, 241, 0.2)' : '#1e293b',
+    color: active ? '#818cf8' : '#64748b',
+    border: `1px solid ${active ? '#6366f1' : '#334155'}`,
+  });
 
   return (
     <div
       style={{
-        height: 56,
+        height: 52,
         background: '#0f172a',
         borderBottom: '1px solid #1e293b',
         display: 'flex',
         alignItems: 'center',
-        padding: '0 16px',
-        gap: 8,
+        padding: '0 14px',
+        gap: 6,
         flexShrink: 0,
         position: 'relative',
         zIndex: 9,
       }}
     >
-      {/* Input file tersembunyi */}
+      {/* Hidden file input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -110,7 +142,7 @@ export default function Toolbar({
         id="excel-file-input"
       />
 
-      {/* Tombol Unggah */}
+      {/* Upload */}
       <button
         id="btn-upload"
         onClick={() => fileInputRef.current?.click()}
@@ -119,19 +151,19 @@ export default function Toolbar({
           ...btnBase,
           background: 'linear-gradient(135deg, #818cf8, #6366f1)',
           color: '#fff',
-          boxShadow: '0 0 20px rgba(99, 102, 241, 0.3)',
+          boxShadow: '0 0 16px rgba(99, 102, 241, 0.3)',
           opacity: isDisabled ? 0.7 : 1,
         }}
       >
         {isLoading && !isExporting ? (
-          <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
+          <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
         ) : (
-          <Upload size={15} />
+          <Upload size={14} />
         )}
         {isLoading && !isExporting ? 'Membaca...' : 'Unggah Excel'}
       </button>
 
-      {/* Unduh Template */}
+      {/* Download template */}
       <a
         href="/Tarombo_Template.xlsx"
         download="Tarombo_Template.xlsx"
@@ -139,22 +171,22 @@ export default function Toolbar({
         style={{
           ...btnBase,
           background: '#1e293b',
-          color: '#94a3b8',
+          color: '#64748b',
           border: '1px solid #334155',
           textDecoration: 'none',
           pointerEvents: isDisabled ? 'none' : 'auto',
           opacity: isDisabled ? 0.7 : 1,
         }}
       >
-        <Download size={15} />
-        Unduh Template
+        <Download size={14} />
+        Template
       </a>
 
-      {/* Pemisah */}
-      <div style={{ width: 1, height: 28, background: '#1e293b', margin: '0 4px' }} />
+      {/* Separator */}
+      <div style={{ width: 1, height: 24, background: '#1e293b', margin: '0 2px' }} />
 
-      {/* Kotak Pencarian */}
-      <div style={{ position: 'relative', flex: 1, maxWidth: 320 }}>
+      {/* Search */}
+      <div style={{ position: 'relative', flex: 1, maxWidth: 300 }}>
         <div
           style={{
             display: 'flex',
@@ -164,15 +196,19 @@ export default function Toolbar({
             borderRadius: 8,
             padding: '0 10px',
             gap: 8,
-            height: 36,
+            height: 34,
           }}
         >
-          <Search size={14} color="#475569" />
+          <Search size={13} color="#475569" />
           <input
             ref={searchInputRef}
             id="search-input"
             type="text"
-            placeholder={hasTree ? `Cari dari ${persons.length} anggota...` : 'Unggah file terlebih dahulu'}
+            placeholder={
+              hasTree
+                ? `Cari dari ${persons.length} anggota…`
+                : 'Unggah file terlebih dahulu'
+            }
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             disabled={!hasTree || isDisabled}
@@ -182,7 +218,7 @@ export default function Toolbar({
               border: 'none',
               outline: 'none',
               color: '#f1f5f9',
-              fontSize: 13,
+              fontSize: 12,
               fontFamily: 'inherit',
               cursor: !hasTree || isDisabled ? 'not-allowed' : 'text',
             }}
@@ -203,12 +239,12 @@ export default function Toolbar({
                 alignItems: 'center',
               }}
             >
-              <X size={13} />
+              <X size={12} />
             </button>
           )}
         </div>
 
-        {/* Dropdown hasil pencarian */}
+        {/* Search dropdown */}
         {isSearchOpen && (
           <div
             style={{
@@ -222,7 +258,7 @@ export default function Toolbar({
               overflow: 'hidden',
               boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
               zIndex: 100,
-              maxHeight: 300,
+              maxHeight: 320,
               overflowY: 'auto',
             }}
           >
@@ -268,16 +304,19 @@ export default function Toolbar({
                     flexShrink: 0,
                   }}
                 >
-                  <Users size={13} color={result.person.gender === 'L' ? '#60a5fa' : '#f472b6'} />
+                  <Users
+                    size={12}
+                    color={result.person.gender === 'L' ? '#60a5fa' : '#f472b6'}
+                  />
                 </div>
-                <div>
-                  <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, color: '#f1f5f9', fontWeight: 600 }}>
                     {result.person.name}
                   </div>
-                  <div style={{ fontSize: 11, color: '#64748b' }}>
+                  <div style={{ fontSize: 10, color: '#64748b' }}>
                     ID: {result.person.id}
                     {result.person.marga ? ` · ${result.person.marga}` : ''}
-                    {` · Generasi ${result.person.generationComputed}`}
+                    {` · Gen ${result.person.generationComputed}`}
                   </div>
                 </div>
               </button>
@@ -286,20 +325,21 @@ export default function Toolbar({
         )}
       </div>
 
-      {/* Nama file aktif */}
+      {/* Filename badge */}
       {fileName && (
         <div
           style={{
-            fontSize: 11,
+            fontSize: 10,
             color: '#64748b',
-            padding: '4px 10px',
+            padding: '3px 9px',
             background: '#1e293b',
             borderRadius: 6,
             border: '1px solid #334155',
-            maxWidth: 160,
+            maxWidth: 140,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
+            flexShrink: 0,
           }}
           title={fileName}
         >
@@ -307,51 +347,169 @@ export default function Toolbar({
         </div>
       )}
 
-      {/* Spasi */}
+      {/* Flex spacer */}
       <div style={{ flex: 1 }} />
 
-      {/* Ekspor PNG */}
+      {/* ── Phase 2 action buttons ── */}
+
+      {hasTree && (
+        <>
+          {/* Statistics */}
+          <button
+            id="btn-stats"
+            onClick={onToggleStats}
+            title="Panel Statistik"
+            style={iconBtnStyle(showStats)}
+            onMouseEnter={(e) => {
+              if (!showStats) {
+                (e.currentTarget as HTMLButtonElement).style.color = '#f1f5f9';
+                (e.currentTarget as HTMLButtonElement).style.background = '#334155';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!showStats) {
+                (e.currentTarget as HTMLButtonElement).style.color = '#64748b';
+                (e.currentTarget as HTMLButtonElement).style.background = '#1e293b';
+              }
+            }}
+          >
+            <BarChart2 size={14} />
+          </button>
+
+          {/* Filter */}
+          <button
+            id="btn-filter"
+            onClick={onToggleFilter}
+            title="Panel Filter"
+            style={iconBtnStyle(showFilter)}
+            onMouseEnter={(e) => {
+              if (!showFilter) {
+                (e.currentTarget as HTMLButtonElement).style.color = '#f1f5f9';
+                (e.currentTarget as HTMLButtonElement).style.background = '#334155';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!showFilter) {
+                (e.currentTarget as HTMLButtonElement).style.color = '#64748b';
+                (e.currentTarget as HTMLButtonElement).style.background = '#1e293b';
+              }
+            }}
+          >
+            <Filter size={14} />
+          </button>
+
+          {/* Legend */}
+          <button
+            id="btn-legend"
+            onClick={onToggleLegend}
+            title="Legenda Warna"
+            style={iconBtnStyle(showLegend)}
+            onMouseEnter={(e) => {
+              if (!showLegend) {
+                (e.currentTarget as HTMLButtonElement).style.color = '#f1f5f9';
+                (e.currentTarget as HTMLButtonElement).style.background = '#334155';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!showLegend) {
+                (e.currentTarget as HTMLButtonElement).style.color = '#64748b';
+                (e.currentTarget as HTMLButtonElement).style.background = '#1e293b';
+              }
+            }}
+          >
+            <BookOpen size={14} />
+          </button>
+
+          {/* Expand All */}
+          <button
+            id="btn-expand-all"
+            onClick={onExpandAll}
+            title="Tampilkan Semua Node"
+            style={iconBtnStyle(false)}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = '#f1f5f9';
+              (e.currentTarget as HTMLButtonElement).style.background = '#334155';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = '#64748b';
+              (e.currentTarget as HTMLButtonElement).style.background = '#1e293b';
+            }}
+          >
+            <TrendingUp size={14} />
+          </button>
+
+          {/* Reset Focus (only when in focus mode) */}
+          {hasFocus && (
+            <button
+              id="btn-reset-focus"
+              onClick={onResetFocus}
+              title="Reset Focus Silsilah"
+              style={{
+                ...btnBase,
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#f87171',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background =
+                  'rgba(239, 68, 68, 0.25)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background =
+                  'rgba(239, 68, 68, 0.12)';
+              }}
+            >
+              <RefreshCw size={13} />
+              Reset Focus
+            </button>
+          )}
+
+          <div style={{ width: 1, height: 24, background: '#1e293b', margin: '0 2px' }} />
+        </>
+      )}
+
+      {/* Export PNG */}
       <button
         id="btn-export-png"
         onClick={onExportPng}
         disabled={!hasTree || isDisabled}
-        title="Ekspor sebagai PNG (resolusi tinggi, seluruh pohon)"
+        title="Ekspor sebagai PNG"
         style={{
           ...btnBase,
           background: hasTree && !isDisabled ? '#1e293b' : '#0f172a',
-          color: hasTree && !isDisabled ? '#94a3b8' : '#334155',
+          color: hasTree && !isDisabled ? '#64748b' : '#334155',
           border: `1px solid ${hasTree && !isDisabled ? '#334155' : '#1e293b'}`,
           cursor: hasTree && !isDisabled ? 'pointer' : 'not-allowed',
         }}
       >
         {isExporting ? (
-          <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
+          <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
         ) : (
-          <ImageIcon size={15} />
+          <ImageIcon size={14} />
         )}
-        Ekspor PNG
+        PNG
       </button>
 
-      {/* Ekspor PDF */}
+      {/* Export PDF */}
       <button
         id="btn-export-pdf"
         onClick={onExportPdf}
         disabled={!hasTree || isDisabled}
-        title="Ekspor sebagai PDF (ukuran menyesuaikan pohon)"
+        title="Ekspor sebagai PDF"
         style={{
           ...btnBase,
           background: hasTree && !isDisabled ? '#1e293b' : '#0f172a',
-          color: hasTree && !isDisabled ? '#94a3b8' : '#334155',
+          color: hasTree && !isDisabled ? '#64748b' : '#334155',
           border: `1px solid ${hasTree && !isDisabled ? '#334155' : '#1e293b'}`,
           cursor: hasTree && !isDisabled ? 'pointer' : 'not-allowed',
         }}
       >
         {isExporting ? (
-          <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
+          <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
         ) : (
-          <FileText size={15} />
+          <FileText size={14} />
         )}
-        Ekspor PDF
+        PDF
       </button>
     </div>
   );
