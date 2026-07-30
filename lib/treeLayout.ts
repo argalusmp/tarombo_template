@@ -7,10 +7,10 @@ import type { TaromboPerson, PersonNodeData, TreeLayoutResult } from '@/types/ta
 // Handles 1000+ nodes without overlap.
 // ============================================================
 
-const NODE_WIDTH = 200;
-const NODE_HEIGHT = 100;
-const H_GAP = 40;   // horizontal gap between siblings
-const V_GAP = 120;  // vertical gap between generations
+const NODE_WIDTH = 220;
+const NODE_HEIGHT = 120;
+const H_GAP = 36;   // horizontal gap between siblings
+const V_GAP = 80;   // vertical gap between generations
 
 interface LayoutNode {
   id: string;
@@ -76,7 +76,7 @@ function firstWalk(v: LayoutNode): void {
 
 function secondWalk(v: LayoutNode, m: number, depth: number): void {
   v.x = v.prelimX + m;
-  v.y = depth * (NODE_HEIGHT + V_GAP);
+  v.y = depth * (NODE_HEIGHT + V_GAP);  // fixed height × generation depth
   v.children.forEach((w) => secondWalk(w, m + v.mod, depth + 1));
 }
 

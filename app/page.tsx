@@ -18,8 +18,9 @@ import LegendPanel from '@/components/LegendPanel';
 
 import { useFamilyTree } from '@/hooks/useFamilyTree';
 import { useSearch } from '@/hooks/useSearch';
-import { exportPng, exportPdf } from '@/utils/exportUtils';
+import { exportPng, exportPdfAdvanced, type PdfExportOptions } from '@/utils/exportUtils';
 import type { TaromboPerson } from '@/types/tarombo';
+import PdfExportModal from '@/components/PdfExportModal';
 
 // ============================================================
 // Halaman Utama — Phase 2
@@ -36,6 +37,7 @@ export default function HomePage() {
   const [showFilter, setShowFilter] = useState(false);
   const [showLegend, setShowLegend] = useState(false);
   const [showDetailPanel, setShowDetailPanel] = useState(false);
+  const [showPdfModal, setShowPdfModal] = useState(false);
 
   const {
     isLoading,
@@ -167,20 +169,31 @@ export default function HomePage() {
     }
   }, []);
 
-  const handleExportPdf = useCallback(async () => {
-    const viewportEl = treeCanvasRef.current?.getViewportElement();
-    const allNodes = treeCanvasRef.current?.getNodes() ?? [];
-    if (!viewportEl || allNodes.length === 0) return;
-    setIsExporting(true);
-    setExportError(null);
-    try {
-      await exportPdf(viewportEl, allNodes);
-    } catch (err) {
-      setExportError(err instanceof Error ? err.message : 'Gagal mengekspor PDF');
-    } finally {
-      setIsExporting(false);
-    }
-  }, []);
+  // Opens the PDF export modal — actual export is in handlePdfExport
+  const handleExportPdf = useCallback(() => {
+    if (!nodes.length) return;
+    setShowPdfModal(true);
+  }, [nodes.length]);
+
+  // Called by the modal with user-chosen options
+  const handlePdfExport = useCallback(
+    async (opts: PdfExportOptions) => {
+      const viewportEl = treeCanvasRef.current?.getViewportElement();
+      const allNodes = treeCanvasRef.current?.getNodes() ?? [];
+      if (!viewportEl || allNodes.length === 0) return;
+      setIsExporting(true);
+      setExportError(null);
+      try {
+        await exportPdfAdvanced(viewportEl, allNodes, opts);
+        setShowPdfModal(false);
+      } catch (err) {
+        setExportError(err instanceof Error ? err.message : 'Gagal mengekspor PDF');
+      } finally {
+        setIsExporting(false);
+      }
+    },
+    []
+  );
 
   // ── Father name lookup ───────────────────────────────────
   const fatherName = selectedPerson?.fatherId
@@ -357,6 +370,17 @@ export default function HomePage() {
         onClose={handleCloseDetail}
         onFocusLineage={handleFocusLineage}
         onExploreRelations={handleExploreRelations}
+      />
+
+      {/* PDF Export Modal */}
+      <PdfExportModal
+        isOpen={showPdfModal}
+        isExporting={isExporting}
+        nodes={treeCanvasRef.current?.getNodes() ?? []}
+        totalMembers={treeData?.persons.length ?? 0}
+        totalGenerations={treeData?.stats.generations ?? 0}
+        onClose={() => setShowPdfModal(false)}
+        onExport={handlePdfExport}
       />
     </div>
   );
