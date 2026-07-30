@@ -25,7 +25,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import PersonNode from './PersonNode';
+import PersonNode, { PERSON_NODE_WIDTH, PERSON_NODE_HEIGHT } from './PersonNode';
 import type { PersonNodeData, TaromboPerson } from '@/types/tarombo';
 
 // ============================================================
@@ -78,8 +78,8 @@ const TreeCanvasInner = forwardRef<TreeCanvasHandle, TreeCanvasProps>(
         const node = getNode(id);
         if (node) {
           setCenter(
-            node.position.x + (node.measured?.width ?? 200) / 2,
-            node.position.y + (node.measured?.height ?? 100) / 2,
+            node.position.x + (node.measured?.width  ?? PERSON_NODE_WIDTH)  / 2,
+            node.position.y + (node.measured?.height ?? PERSON_NODE_HEIGHT) / 2,
             { zoom: 1.2, duration: 600 }
           );
         }
