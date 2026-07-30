@@ -74,6 +74,31 @@ export interface FamilyTreeData {
   };
 }
 
+/**
+ * Extended statistics for the Statistics Panel.
+ */
+export interface ExtendedStats {
+  total: number;
+  males: number;
+  females: number;
+  generations: number;
+  roots: number;
+  alive: number;
+  deceased: number;
+  branches: number;
+  rootPersonName: string | null;
+}
+
+/**
+ * Filter state for the Filter Panel.
+ */
+export interface FilterState {
+  gender: 'all' | 'L' | 'P';
+  status: 'all' | 'alive' | 'deceased';
+  generation: number | null;
+  lineageOnly: boolean;
+}
+
 // ============================================================
 // React Flow Node/Edge Types
 // ============================================================
@@ -82,6 +107,16 @@ export interface PersonNodeData extends Record<string, unknown> {
   person: TaromboPerson;
   isHighlighted: boolean;
   isSearchResult: boolean;
+  // Phase 2 additions
+  isFaded: boolean;
+  isSelected: boolean;
+  isAncestor: boolean;
+  isDescendant: boolean;
+  isFocused: boolean;
+  hasChildren: boolean;
+  isCollapsed: boolean;
+  onCollapse?: (id: string) => void;
+  onNodeClick?: (person: TaromboPerson) => void;
 }
 
 export interface TreeLayoutResult {

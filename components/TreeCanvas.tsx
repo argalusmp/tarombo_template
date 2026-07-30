@@ -21,14 +21,15 @@ import {
   type Edge,
   type FitViewOptions,
   type NodeTypes,
+  type NodeMouseHandler,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 import PersonNode from './PersonNode';
-import type { PersonNodeData } from '@/types/tarombo';
+import type { PersonNodeData, TaromboPerson } from '@/types/tarombo';
 
 // ============================================================
-// TreeCanvas — React Flow wrapper
+// TreeCanvas — React Flow wrapper (Phase 2 enhanced)
 // ============================================================
 
 const nodeTypes: NodeTypes = { personNode: PersonNode };
@@ -40,28 +41,29 @@ const fitViewOptions: FitViewOptions = {
 
 export interface TreeCanvasHandle {
   fitView: () => void;
+  focusOnNode: (id: string) => void;
   getViewportElement: () => HTMLElement | null;
-  /** Mengembalikan semua node dengan posisi & dimensi yang sudah di-measure oleh React Flow */
+  /** Returns all nodes with positions & dimensions measured by React Flow */
   getNodes: () => Node<PersonNodeData>[];
 }
 
 interface TreeCanvasProps {
   nodes: Node<PersonNodeData>[];
   edges: Edge[];
+  onNodeSelect?: (person: TaromboPerson) => void;
 }
 
-// ─── Inner component (membutuhkan ReactFlow context) ────────
+// ─── Inner component (needs ReactFlow context) ──────────────
 
 const TreeCanvasInner = forwardRef<TreeCanvasHandle, TreeCanvasProps>(
-  function TreeCanvasInner({ nodes: propNodes, edges: propEdges }, ref) {
-    const { fitView, getNodes } = useReactFlow();
+  function TreeCanvasInner({ nodes: propNodes, edges: propEdges, onNodeSelect }, ref) {
+    const { fitView, getNodes, setCenter, getNode } = useReactFlow();
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // useNodesState / useEdgesState → MiniMap & drag bekerja dengan benar
     const [nodes, setNodes, onNodesChange] = useNodesState<Node<PersonNodeData>>(propNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(propEdges);
 
-    // Sinkronkan ketika prop berubah (file baru diupload)
+    // Sync when props change (new file uploaded or filters/state change)
     useEffect(() => {
       setNodes(propNodes);
     }, [propNodes, setNodes]);
@@ -72,14 +74,37 @@ const TreeCanvasInner = forwardRef<TreeCanvasHandle, TreeCanvasProps>(
 
     useImperativeHandle(ref, () => ({
       fitView: () => fitView(fitViewOptions),
+      focusOnNode: (id: string) => {
+        const node = getNode(id);
+        if (node) {
+          setCenter(
+            node.position.x + (node.measured?.width ?? 200) / 2,
+            node.position.y + (node.measured?.height ?? 100) / 2,
+            { zoom: 1.2, duration: 600 }
+          );
+        }
+      },
       getViewportElement: () =>
         containerRef.current?.querySelector('.react-flow__viewport') as HTMLElement | null,
-      // getNodes() dari instance React Flow memiliki properti `measured` (dimensi aktual)
       getNodes: () => getNodes() as Node<PersonNodeData>[],
     }));
 
+    const handleNodeClick = useCallback<NodeMouseHandler>(
+      (_event, node) => {
+        const data = node.data as PersonNodeData;
+        if (data?.person && onNodeSelect) {
+          onNodeSelect(data.person);
+        }
+      },
+      [onNodeSelect]
+    );
+
     const miniMapNodeColor = useCallback((node: Node) => {
       const data = node.data as PersonNodeData | undefined;
+      if (data?.isSelected) return '#60a5fa';
+      if (data?.isAncestor) return '#f87171';
+      if (data?.isDescendant) return '#4ade80';
+      if (data?.isFocused) return '#a78bfa';
       const gender = data?.person?.gender;
       if (gender === 'L') return '#3b82f6';
       if (gender === 'P') return '#ec4899';
@@ -94,6 +119,7 @@ const TreeCanvasInner = forwardRef<TreeCanvasHandle, TreeCanvasProps>(
           nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onNodeClick={handleNodeClick}
           fitView
           fitViewOptions={fitViewOptions}
           minZoom={0.02}
@@ -139,7 +165,7 @@ const TreeCanvasInner = forwardRef<TreeCanvasHandle, TreeCanvasProps>(
 
 TreeCanvasInner.displayName = 'TreeCanvasInner';
 
-// ─── Outer component membungkus dengan ReactFlowProvider ────
+// ─── Outer component wraps with ReactFlowProvider ────────────
 
 const TreeCanvas = forwardRef<TreeCanvasHandle, TreeCanvasProps>(
   function TreeCanvas(props, ref) {
